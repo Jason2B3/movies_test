@@ -6,26 +6,25 @@ import "./App.css";
 function App() {
   const [poster, setPoster] = useState([]);
   const inputRef = React.useRef("nothing");
-  const btnHandler = function () {
+
+  const btnHandler = function (e) {
     showResearch(inputRef.current.value);
     inputRef.current.value = "";
   };
-
-  function showResearch(query) {
-    fetch(`https://api.tvmaze.com/singlesearch/shows?q=${query}`)
-      .then((response) => {
-        if (!response.ok)
-          throw new Error("No shows found in the search results");
-        return response.json();
-      })
-      .then((parsedData) => {
-        console.log(parsedData);
-        setPoster((prevState) => [...prevState, parsedData.image.medium]);
-      })
-      .catch((errorObj) => {
-        alert(errorObj);
-        console.error(errorObj);
-      });
+  const [showData, setShowData] = useState({});
+  async function showResearch(query) {
+    try {
+      const result = await fetch(
+        `https://api.tvmaze.com/singlesearch/shows?q=${query}`
+      );
+      if (!result.ok) throw new Error("No shows found in the search results"); // don't forget
+      const parsedData = await result.json();
+      console.log(parsedData);
+      setPoster((prevState) => [parsedData.image.medium]);
+    } catch (errorObj) {
+      alert(errorObj);
+      console.error(errorObj);
+    }
   }
 
   return (
