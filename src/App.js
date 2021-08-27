@@ -28,8 +28,8 @@ function App() {
     inputRef.current.value = ""; // clear input fields
   };
 
-  async function showResearch(query) {
-    console.log(8);
+  // Make it so this function is created ONE TIME, on startup
+  const showResearch = React.useCallback(async function (query) {
     dispatch({ type: "pending" }); // render loading message
     try {
       const result = await fetch(
@@ -37,11 +37,9 @@ function App() {
       );
       if (!result.ok) throw new Error("No shows found in the search results");
       const parsedData = await result.json();
-      console.log(parsedData);
       // Now take steps to render your poster
       setPoster((prevState) => [parsedData.image.medium]); // update poster array
       dispatch({ type: "success" }); // End loading message
-      console.log(9);
       return {
         // Time to rename shit!
         showID: parsedData.id,
@@ -52,8 +50,12 @@ function App() {
     } catch (errorObj) {
       dispatch({ type: "failure" });
     }
-    console.log(10); // UNREACHED BECAUSE OF OUR RETURN
-  }
+  }, []);
+
+  // Start your application by showing this poster on startup
+  React.useEffect(() => {
+    showResearch("Erased");
+  }, [showResearch]);
 
   return (
     <React.Fragment>
