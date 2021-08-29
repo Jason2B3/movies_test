@@ -27,45 +27,53 @@ function App() {
     console.log(showInfo);
     inputRef.current.value = ""; // clear input fields
   };
-
-  // Make it so this function is created ONE TIME, on startup
-  const showResearch = React.useCallback(async function (query) {
-    dispatch({ type: "pending" }); // render loading message
+  //% Send data to your Firebase backend
+  const sendToFireBase = React.useCallback(async function (query) {
+    dispatch({ type: "pending" });
     try {
+      //~ Grab a poster from the TVMAZE API depending on the input
       const result = await fetch(
         `https://api.tvmaze.com/singlesearch/shows?q=${query}`
       );
       if (!result.ok) throw new Error("No shows found in the search results");
       const parsedData = await result.json();
-      // Now take steps to render your poster
-      setPoster((prevState) => [parsedData.image.medium]); // update poster array
-      dispatch({ type: "success" }); // End loading message
-      return {
-        // Time to rename shit!
+      //~ Send that poster to Firebase, along with other show details
+      const orgData={
         showID: parsedData.id,
+        poster: parsedData.image.medium,
         title: parsedData.name,
         score: parsedData.rating.average,
-        genre: parsedData.type,
-      };
+        genre: parsedData.type,        
+      }
+      //! SEND HERE
+      dispatch({ type: "success" }); // End loading message
+      
+    } catch {
+      dispatch({ type: "failure" });
+    }
+  }, []);
+  // Make it so this function is created ONE TIME, on startup
+  const showResearch = React.useCallback(async function (query) {
+    dispatch({ type: "pending" }); // render loading message
+    try {
+     //! Fetch data FROM Firebase and render a list of posters
     } catch (errorObj) {
       dispatch({ type: "failure" });
     }
   }, []);
 
-  // Start your application by showing this poster on startup
-  React.useEffect(() => {
-    showResearch("Erased");
-  }, [showResearch]);
-
   return (
     <React.Fragment>
       <section>
         <input ref={inputRef} placeholder={"enter show here"} />
-        <button onClick={btnHandler}>Fetch Media</button>
+        <button className="sendUp" onClick={btnHandler}>
+          Send poster to firebase
+        </button>
+        <button className="pullDown">Fetch all stored posters</button>
       </section>
       <section>
         {loadState.queryResult === undefined && (
-          <p>Search for a movie or show!</p>
+          <p>Pull down some posters from your backend!</p>
         )}
         {loadState.queryResult === "pending" && <p>Searching for media...</p>}
         {loadState.queryResult === "failure" && <p>No search results found</p>}
