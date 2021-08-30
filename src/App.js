@@ -4,20 +4,22 @@ import MoviesList from "./components/MoviesList";
 import "./App.css";
 
 function reducerFN(state, action) {
-  // Increment or decrement our current count by 1
   if (action.type === "success") return { queryResult: "success" };
   if (action.type === "failure") return { queryResult: "failure" };
   if (action.type === "pending") return { queryResult: "pending" };
+
+  if (action.type === "successFire") return { queryResult: "successFire" };
+  if (action.type === "failureFire") return { queryResult: "failureFire" };
+  if (action.type === "pendingFire") return { queryResult: "pendingFire" };
   // If action.type is different than the above two options, return state as is
   return state;
 }
 
 function App() {
-  //% 1) Set up stateful variable for loading
+  //% Set up stateful variable for loading
   const [loadState, dispatch] = useReducer(reducerFN, {
     queryResult: undefined,
   });
-  const [poster, setPoster] = useState([]);
   const inputRef = React.useRef("");
 
   const btnHandler = async function (e) {
@@ -35,11 +37,9 @@ function App() {
       if (!result.ok) throw new Error("No shows found in the search results");
       const parsedData = await result.json();
       const reorgData = {
-        showID: parsedData.id,
         poster: parsedData.image.medium,
         title: parsedData.name,
         score: parsedData.rating.average,
-        genre: parsedData.type,
       };
       //$ Send the data to our Firebase backend
       const sendTo = await fetch(
@@ -60,15 +60,38 @@ function App() {
       dispatch({ type: "failure" });
     }
   }, []);
-  // Make it so this function is created ONE TIME, on startup
-  // const showResearch = React.useCallback(async function (query) {
-  //   dispatch({ type: "pending" }); // render loading message
-  //   try {
-  //     //! Fetch data FROM Firebase and render a list of posters
-  //   } catch (errorObj) {
-  //     dispatch({ type: "failure" });
-  //   }
-  // }, []);
+
+  //% Pull existing data down from your Firebase Backend
+  const [loadedFlicks, setLoadedFlicks] = React.useState([]); // will hold show data
+  const fetchFireHandler = React.useCallback(async function (e) {
+    dispatch({ type: "pendingFire" });
+    try {
+      //$ Fetch the JSON data from your Firebase back end
+      const response = await fetch(
+        `https://react-firebase-realtime-ex-default-rtdb.firebaseio.com/movies.json`
+      );
+      if (!response.ok) throw new Error("Failed to fetch your submissions!");
+      const data = await response.json();
+      console.log(data); // shows [{showData}, {showData2}]
+      //$ Take your JSON object, then push it into a stateful array which will be rendered as a list
+      for (const key in data) {
+        setLoadedFlicks((prevState) => [
+          ...prevState,
+          {
+            id: key,
+            title: data[key].title,
+            poster: data[key].poster,
+            score: data[key].score,
+          },
+        ]);
+      }
+      console.log(loadedFlicks); // look at [{showData}, {showData2}]
+      dispatch({ type: "successFire" });
+    } catch (error) {
+      dispatch({ type: "failureFire" });
+      alert("FAIL");
+    }
+  }, []);
 
   return (
     <React.Fragment>
@@ -77,15 +100,30 @@ function App() {
         <button className="sendUp" onClick={btnHandler}>
           Send poster to firebase
         </button>
-        <button className="pullDown">Fetch all stored posters</button>
+        <button className="pullDown" onClick={fetchFireHandler}>
+          Fetch all stored posters
+        </button>
       </section>
+
       <section>
         {loadState.queryResult === undefined && (
-          <p>Pull down some posters from your backend!</p>
+          <p>Pull down some posters from your backend, or send new ones up</p>
         )}
         {loadState.queryResult === "pending" && <p>Searching for media...</p>}
-        {loadState.queryResult === "failure" && <p>No search results found or send</p>}
-        {loadState.queryResult === "success" && <p>Show data sent successfully</p>}
+        {loadState.queryResult === "failure" && (
+          <p>That show does not exist in our database</p>
+        )}
+        {loadState.queryResult === "success" && (
+          <p>Show data sent successfully</p>
+        )}
+
+        {loadedFlicks.length === 0 &&
+          loadState.queryResult === "successFire" && (
+            <p>No shows saved at the moment</p>
+          )}
+        {loadedFlicks.map((obj) => {
+          return <img key={obj.id} src={obj.poster} />;
+        })}
       </section>
     </React.Fragment>
   );
