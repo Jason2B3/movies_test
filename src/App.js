@@ -74,17 +74,16 @@ function App() {
       const data = await response.json();
       console.log(data); // shows [{showData}, {showData2}]
       //$ Take your JSON object, then push it into a stateful array which will be rendered as a list
+      let tempArray=[];
       for (const key in data) {
-        setLoadedFlicks((prevState) => [
-          ...prevState,
-          {
-            id: key,
-            title: data[key].title,
-            poster: data[key].poster,
-            score: data[key].score,
-          },
-        ]);
+        tempArray.push({
+          id: key,
+          title: data[key].title,
+          poster: data[key].poster,
+          score: data[key].score,
+        })
       }
+      setLoadedFlicks(tempArray) // this ensures there are no repeat posters uploaded
       console.log(loadedFlicks); // look at [{showData}, {showData2}]
       dispatch({ type: "successFire" });
     } catch (error) {
